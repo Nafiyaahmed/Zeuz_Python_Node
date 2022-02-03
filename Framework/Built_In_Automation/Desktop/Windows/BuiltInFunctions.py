@@ -43,6 +43,7 @@ from System.Windows.Automation import *
 import pyautogui  # Should be removed after we complete sequential actions
 import autoit  # The likely method we'll use
 
+import psutil
 #########################
 #                       #
 #    Global Variables   #
@@ -56,6 +57,7 @@ if Shared_Resources.Test_Shared_Variables("dependency"):  # Check if driver is a
 recur_count = 0  # To be deleted
 unnecessary_sleep = 0
 gui_action_sleep = 2
+windows_details = {}
 
 
 @logger
@@ -911,7 +913,6 @@ def image_search(step_data_set):
 
             data = pytesseract.image_to_boxes(gray)
             all_letters = data.split("\n")
-            print(all_letters)
             full_string = ""
             for i in all_letters:
                 full_string += i[0] if len(i) > 0 else "~"
@@ -923,9 +924,11 @@ def image_search(step_data_set):
                 CommonUtil.ExecLog(sModuleInfo, "Found %s text elements. Returning element of index %s" % (len(all_pos), idx), 1)
                 i = all_pos[idx]
             elif len(all_pos) != 0:
+                print(all_letters)
                 CommonUtil.ExecLog(sModuleInfo, "Found %s text elements. Index out of range" % len(all_pos), 3)
                 return "zeuz_failed"
             else:
+                print(all_letters)
                 CommonUtil.ExecLog(sModuleInfo, 'Could not find text "%s"' % image_text, 3)
                 return "zeuz_failed"
 
@@ -1572,6 +1575,7 @@ def Run_Application(data_set):
         args = {"shell": True, "stdin": None, "stdout": None, "stderr": None}
         launch_cond = ""
         Desktop_app = ""
+        driver_id = ""
         size, top_left, maximize = None, None, False
         wait = Shared_Resources.Get_Shared_Variables("element_wait")
         for left, mid, right in data_set:
@@ -1594,27 +1598,33 @@ def Run_Application(data_set):
                 maximize = True
             elif "relaunch" in left and yes_cond:
                 launch_cond = "relaunch"
-            elif "launchagain" in left and yes_cond:
-                launch_cond = "launchagain"
+            elif "launchanother" in left and yes_cond:
+                launch_cond = "launchanother"
             elif "wait" == left:
                 wait = float(r)
+            elif "driverid" == left:
+                driver_id = right.strip()
 
-        if "~" in Desktop_app and os.path.isfile(os.path.expanduser(Desktop_app)):
-            Desktop_app = os.path.expanduser(Desktop_app)
+        if not driver_id:
+            driver_id = "default"
+        # if "~" in Desktop_app and os.path.isfile(os.path.expanduser(Desktop_app)):
+        #     Desktop_app = os.path.expanduser(Desktop_app)
+        Desktop_app = CommonUtil.path_parser(Desktop_app)
         if not launch_cond and len(pygetwindow.getWindowsWithTitle(Desktop_app)) > 0:
             CommonUtil.ExecLog(
                 sModuleInfo,
                 "The App has already been launched earlier. So not launching again.\n" +
                 'If you want to quit the existing app and relaunch it then add a row ("relaunch", "optional parameter", "yes")\n' +
-                'If you want to keep the existing app and launch another instance of it then add a row ("launch again", "optional parameter", "yes")', 2)
+                'If you want to keep the existing app and launch another instance of it then add a row ("launch another", "optional parameter", "yes")', 2)
         else:
             if launch_cond == "relaunch":
                 Close_Application([("close app", "action", Desktop_app)])
             if os.path.isfile(Desktop_app):
                 cmd = Desktop_app[:2] + " && cd " + os.path.dirname(Desktop_app) + " && start cmd.exe /K " + Desktop_app
                 CommonUtil.ExecLog(sModuleInfo, "Running following cmd:\n" + cmd, 1)
-                subprocess.Popen(cmd, **args)
-                # Desktop_app = os.path.basename(Desktop_app)
+                proc = subprocess.Popen(cmd, **args)
+                CommonUtil.ExecLog(sModuleInfo, "New application PID: %s driver id: %s" % (proc.pid, "default"), 1)
+                windows_details[driver_id] = {"pid": proc.pid, "process": proc}
             else:
                 autoit.send("^{ESC}")
                 time.sleep(0.5)
@@ -1628,17 +1638,29 @@ def Run_Application(data_set):
             #     Desktop_app += ".exe"
             CommonUtil.ExecLog(sModuleInfo, "Waiting for the app to launch for maximum %s seconds" % wait, 1)
             s = time.time()
-            while time.time() - s < wait:
+            all_process = list(psutil.process_iter())     # it takes 3-4 seconds
+            while True:
                 # if len(pygetwindow.getWindowsWithTitle(Desktop_app)) > 0:     # This is case in-sensitive
                 if Desktop_app in pygetwindow.getActiveWindow().title:          # This is case sensitive
                     break
+                elif os.path.isfile(Desktop_app) and Desktop_app.split("\\")[-1].split(".")[0].lower() in pygetwindow.getActiveWindow().title:
+                    break
+                if time.time() > s + wait:
+                    if maximize or size is not None:
+                        CommonUtil.ExecLog(sModuleInfo, "Could not find any launched app with title: %s however continuing. Maximize or custom app size wont work" % Desktop_app, 2)
+                    else:
+                        CommonUtil.ExecLog(sModuleInfo, "Could not find any launched app with title: %s however continuing" % Desktop_app, 2)
+                    return "passed"
                 time.sleep(0.5)
-            else:
-                if maximize or size is not None:
-                    CommonUtil.ExecLog(sModuleInfo, "Could not find any launched app with title: %s however continuing. Maximize or custom app size wont work" % Desktop_app, 2)
+
+            if not os.path.isfile(Desktop_app):
+                proc = get_pid_from_title(Desktop_app, all_process)
+                if proc is not None:
+                    CommonUtil.ExecLog(sModuleInfo, "Put binary exe path cause its more reliable:\n(open app, windows action, %s)" % proc.exe(), 2)
+                    CommonUtil.ExecLog(sModuleInfo, "New application PID: %s driver id: %s" % (proc.pid, "default"), 1)
+                    windows_details["default"] = {"pid": proc.pid, "process": proc}
                 else:
-                    CommonUtil.ExecLog(sModuleInfo, "Could not find any launched app with title: %s however continuing" % Desktop_app, 2)
-                return "passed"
+                    windows_details["default"] = {"pid": 0, "process": None}
 
         if maximize:
             win = pygetwindow.getWindowsWithTitle(Desktop_app)[0]
@@ -1662,16 +1684,69 @@ def Run_Application(data_set):
         return "zeuz_failed"
 
 
+def get_pid_from_title(Desktop_app, all_process):
+    MainWindowsList = AutomationElement.RootElement.FindAll(
+        TreeScope.Children, Condition.TrueCondition
+    )
+    for window in MainWindowsList:
+        try:
+            NameS = window.Current.Name
+            if Desktop_app.lower() in NameS.lower():
+                for proc in all_process:
+                    if window.Current.ProcessId == proc.pid:
+                        if proc.create_time() + 10 > time.time():
+                            autoit.win_activate(NameS)
+                            return proc
+                        else:
+                            break
+        except:
+            pass
+    return None
+
+
+def get_title_from_pid(pid):
+    if pid == 0:
+        return ""
+    MainWindowsList = AutomationElement.RootElement.FindAll(
+        TreeScope.Children, Condition.TrueCondition
+    )
+    for window in MainWindowsList:
+        try:
+            if window.Current.ProcessId == pid:
+                return window.Current.Name
+        except:
+            pass
+    return ""
+
+
 @logger
 def Close_Application(data_set):
     sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
     try:
         Desktop_app = ""
+        driver_id = ""
         for left, mid, right in data_set:
+            left = left.replace(" ", "").replace("_", "").replace("-", "").lower()
             if mid.strip().lower() == "action":
                 Desktop_app = right.strip()
+            elif left == "driverid":
+                driver_id = right.strip()
 
-        if ".exe" not in Desktop_app:
+        if not driver_id:
+            driver_id = "default"
+        if windows_details[driver_id]["pid"]:
+            title = get_title_from_pid(windows_details[driver_id]["pid"])
+            if Desktop_app in title:
+                CommonUtil.ExecLog(sModuleInfo, "Closing the app with Title: %s PID: %s driver_id=%s" % (
+                    title, windows_details[driver_id]["pid"], driver_id), 1)
+                windows_details[driver_id]["process"].kill()
+            else:
+                CommonUtil.ExecLog(sModuleInfo, "Closing the app with Title: %s PID: %s driver_id=%s" % (
+                    get_title_from_pid(windows_details[driver_id]["pid"]), windows_details[driver_id]["pid"], driver_id), 1)
+                windows_details[driver_id]["process"].kill()
+            windows_details[driver_id] = {}
+
+        elif ".exe" not in Desktop_app:
             Desktop_app = Desktop_app + ".exe"
             os.system("TASKKILL /F /IM %s" % Desktop_app)
         else:
