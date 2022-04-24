@@ -4575,3 +4575,40 @@ def scroll_to_element(data_set):
     except Exception:
         return CommonUtil.Exception_Handler(sys.exc_info(), None, "Error could not scroll the element")
 
+
+def draw_line_by_offset(data_set):
+    """
+    Draw line using coordinates
+
+    draw    |line   |((x1, y1), (x2, y2))
+    draw    |line   |((x3, y3), (x4, y4))
+    """
+    sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
+
+    user_action = TouchAction(appium_driver)
+
+    skip_or_not = filter_optional_action_and_step_data(data_set, sModuleInfo)
+    if not skip_or_not:
+        return "passed"
+
+    # Parse data set
+    try:
+        x1, y1, x2, y2 = 0, 0, 0, 0
+        for left, middle, right in data_set:
+            if "draw" in left.lower():
+                if "line" in middle.lower():
+                    # Todo: Take the x1, y1 and x2, y2 value from data_set
+                    x1, y1 = right[0]
+                    x2, y2 = right[1]
+                else:
+                    # Todo: perform dot
+
+            user_action.long_press(x=x1, y=y1, duration=1000).move_to(x=x2, y=y2).perform()
+
+        if  x1 == 0 or y1 == 0 or x2 == 0 or y2 == 0:
+            CommonUtil.ExecLog(sModuleInfo, "Could not find offset value", 3)
+            return "zeuz_failed"
+
+    except Exception:
+        errMsg = "Unable to parse data set"
+        return CommonUtil.Exception_Handler(sys.exc_info(), None, errMsg)
