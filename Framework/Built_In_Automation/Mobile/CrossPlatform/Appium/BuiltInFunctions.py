@@ -4581,7 +4581,8 @@ def draw_line_by_offset(data_set):
     Draw line using coordinates
 
     draw    |line   |((x1, y1), (x2, y2))
-    draw    |line   |((x3, y3), (x4, y4))
+    draw    |line   |(x3, y3), (x4, y4)
+    draw    |circle |(h, k), r
     """
     sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
 
@@ -4594,20 +4595,23 @@ def draw_line_by_offset(data_set):
     # Parse data set
     try:
         x1, y1, x2, y2 = 0, 0, 0, 0
+        radius = 0
         for left, middle, right in data_set:
-            if "draw" in left.lower():
-                if "line" in middle.lower():
-                    # Todo: Take the x1, y1 and x2, y2 value from data_set
+            if "draw" in left.strip().lower():
+                if "line" in middle.strip().lower():
                     x1, y1 = right[0]
                     x2, y2 = right[1]
-                else:
-                    # Todo: perform dot
+                    # Draw line
+                    user_action.long_press(x=x1, y=y1, duration=1000).move_to(x=x2, y=y2).perform()
+                elif "circle" in middle.strip().lower():
+                    x1, y1 = right[0]
+                    radius = right[1]
+                    # Todo: Draw circle this will take coordinate of the center and the radius in a tuple
+                    print("Drawing circle")
 
-            user_action.long_press(x=x1, y=y1, duration=1000).move_to(x=x2, y=y2).perform()
-
-        if  x1 == 0 or y1 == 0 or x2 == 0 or y2 == 0:
-            CommonUtil.ExecLog(sModuleInfo, "Could not find offset value", 3)
-            return "zeuz_failed"
+        # if  x1 == 0 or y1 == 0 or x2 == 0 or y2 == 0:
+        #     CommonUtil.ExecLog(sModuleInfo, "Could not find offset value", 3)
+        #     return "zeuz_failed"
 
     except Exception:
         errMsg = "Unable to parse data set"
