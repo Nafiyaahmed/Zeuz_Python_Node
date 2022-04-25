@@ -367,7 +367,7 @@ def Open_Electron_App(data_set):
 
 
 @logger
-def Open_Browser(dependency, window_size_X=None, window_size_Y=None, capability=None, argument=None):
+def Open_Browser(dependency, window_size_X=None, window_size_Y=None, capability=None, options=[]):
     """ Launch browser and create instance """
 
     global selenium_driver
@@ -436,18 +436,28 @@ def Open_Browser(dependency, window_size_X=None, window_size_Y=None, capability=
                     # options.set_capability('unhandledPromptBehavior', 'ignore')
                     options.set_capability(key, value)
 
-            # Todo: add_argument open_browser
-            if argument:
-                # cls = command line switches
-                for cls in argument:
-                    options.add_argument(cls)
+            if not options:
+                # argument
+                options.add_argument("--no-sandbox")
+                options.add_argument("--disable-extensions")
+                options.add_argument('--ignore-certificate-errors')
+                options.add_argument('--ignore-ssl-errors')
+                options.add_argument('--Zeuz_pid_finder')
 
-            # argument
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-extensions")
-            options.add_argument('--ignore-certificate-errors')
-            options.add_argument('--ignore-ssl-errors')
-            options.add_argument('--Zeuz_pid_finder')
+            # Todo: add_argument open_browser
+            # if argument:
+            #     # cls = command line switches
+            #     for cls in argument:
+            #         options.add_argument(cls)
+
+            if options:
+                for left, right in options:
+                    if left.strip().lower() == "add argument":
+                        options.add_argument(right.strip())
+
+                    elif left.strip().lower() == "add extension":
+                        options.add_extension(CommonUtil.path_parser(right))
+
             if browser == "android":
                 mobile_emulation = {"deviceName": "Pixel 2 XL"}
                 options.add_experimental_option("mobileEmulation", mobile_emulation)
@@ -764,11 +774,13 @@ def Go_To_Link(step_data, page_title=False):
     # default capabilities
     capabilities = {"unhandledPromptBehavior": "ignore"}
 
-    # Todo: add_argument go_to_link
-    # default arguments
+    # default command line switches for add_argument
     arguments_to_set = ["--no-sandbox", "--disable-extensions", '--ignore-certificate-errors', '--ignore-ssl-errors',
                         '--Zeuz_pid_finder']
-    
+
+    # options for add_argument or add_extension etc
+    options = []
+
     # Open browser and create driver if user has not already done so
     global dependency
     global selenium_driver
@@ -796,17 +808,10 @@ def Go_To_Link(step_data, page_title=False):
                     elif right.strip().lower() in ("dismiss", "no", "cancel"):
                         capabilities["unhandledPromptBehavior"] = "dismiss"
 
-            elif mid.strip().lower() == "browser argument":
-                if left.strip().lower() == "chrome":
-                    # append new cls or command line switches
-                    arguments_to_set.append(right.strip())
-
-            # Todo: "crx path 	|extension 		|~path/to/crx"
-            elif mid.strip().lower() == "extension":
-                if left.strip().lower() == "crxpath":
-                    # add crx extension (options.add_extension('c:/path/to/crx/file'))
-                    # and
-                    # remover "--disable-extensions" from arguments_to_set
+            # Todo: argument, extension, chrome option => go_to_link
+            # left=("add extension", "add argument"), mid="chrome option", right=CommonUtil.path_parser(right)
+            elif mid.strip().lower() == "chrome option":
+                options.append([left, right])
 
         if not driver_id:
             driver_id = "default"
@@ -826,13 +831,13 @@ def Go_To_Link(step_data, page_title=False):
                 Tear_Down_Selenium()    # If dependency is changed then teardown and relaunch selenium driver
             CommonUtil.ExecLog(sModuleInfo, "Browser not previously opened, doing so now", 1)
             if window_size_X == "None" and window_size_Y == "None":
-                result = Open_Browser(dependency, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, capability=capabilities, options=options)
             elif window_size_X == "None":
-                result = Open_Browser(dependency, window_size_Y, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, window_size_Y, capability=capabilities, options=options)
             elif window_size_Y == "None":
-                result = Open_Browser(dependency, window_size_X, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, window_size_X, capability=capabilities, options=options)
             else:
-                result = Open_Browser(dependency, window_size_X, window_size_Y, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, window_size_X, window_size_Y, capability=capabilities, options=options)
 
             if result == "zeuz_failed":
                 return "zeuz_failed"
@@ -862,13 +867,13 @@ def Go_To_Link(step_data, page_title=False):
             else:
                 return CommonUtil.Exception_Handler(sys.exc_info())
             if window_size_X == "None" and window_size_Y == "None":
-                result = Open_Browser(dependency, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, capability=capabilities, options=options)
             elif window_size_X == "None":
-                result = Open_Browser(dependency, window_size_Y, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, window_size_Y, capability=capabilities, options=options)
             elif window_size_Y == "None":
-                result = Open_Browser(dependency, window_size_X, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, window_size_X, capability=capabilities, options=options)
             else:
-                result = Open_Browser(dependency, window_size_X, window_size_Y, capability=capabilities, argument=arguments_to_set)
+                result = Open_Browser(dependency, window_size_X, window_size_Y, capability=capabilities, options=options)
 
         if result == "zeuz_failed":
             ErrorMessage = "failed to open your link with driver_id='%s: %s" % (driver_id, web_link)
