@@ -75,7 +75,13 @@ action_support = (
     "attribute constrain",
     "optional option",
     "graphql",
-    "capability"
+    "capability",
+    "add argument",
+    "add arguments",
+    "add extension",
+    "add extensions",
+    "chrome option",
+    "chrome options"
 )
 
 # List of supported mobile platforms - must be lower case

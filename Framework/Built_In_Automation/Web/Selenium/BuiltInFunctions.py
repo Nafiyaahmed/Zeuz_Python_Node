@@ -810,7 +810,7 @@ def Go_To_Link(step_data, page_title=False):
 
             # Todo: argument, extension, chrome option => go_to_link
             # left=("add extension", "add argument"), mid="chrome option", right=CommonUtil.path_parser(right)
-            elif mid.strip().lower() == "chrome option":
+            elif mid.strip().lower() in ("chrome option", "chrome options") and dependency["Browser"] == "chrome":
                 options.append([left, right])
 
         if not driver_id:
