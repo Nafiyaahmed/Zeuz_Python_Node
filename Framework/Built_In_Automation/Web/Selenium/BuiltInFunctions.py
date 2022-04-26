@@ -452,11 +452,11 @@ def Open_Browser(dependency, window_size_X=None, window_size_Y=None, capability=
 
             if options:
                 for left, right in options:
-                    if left.strip().lower() == "add argument":
+                    if left.replace("_","").replace(" ","").lower() == ("addargument", "addarguments"):
                         options.add_argument(right.strip())
 
-                    elif left.strip().lower() == "add extension":
-                        options.add_extension(CommonUtil.path_parser(right))
+                    elif left.replace("_","").replace(" ","").lower() == ("addextension", "addextensions"):
+                        options.add_extension(CommonUtil.path_parser(right.strip()))
 
             if browser == "android":
                 mobile_emulation = {"deviceName": "Pixel 2 XL"}
