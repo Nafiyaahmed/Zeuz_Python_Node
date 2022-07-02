@@ -18,7 +18,6 @@ import sys, os, time, inspect, shutil, subprocess
 import socket
 import requests
 import psutil
-
 sys.path.append("..")
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -364,8 +363,37 @@ def Open_Electron_App(data_set):
     except:
         return CommonUtil.Exception_Handler(sys.exc_info())
 
+from selenium.webdriver.common.devtools.v101.performance import  enable, disable, get_metrics
+from selenium.webdriver.chrome.webdriver import ChromiumDriver
 
+@logger
+def _dev_tools_start(*args):
+    try:
+        # enable()
+        # selenium_driver.execute_cdp_cmd("Performance.enable", {})
+        return "passed"
+    except:
+        return CommonUtil.Exception_Handler(sys.exc_info())
 
+@logger
+def _devtools_end(*args):
+    try:
+        # a= get_metrics()
+        c = selenium_driver.get_log('performance')
+        b = selenium_driver.execute_cdp_cmd('Performance.getMetrics', {})
+        CommonUtil.tmp_perf["perf2"] = b
+
+        print(c)
+        print(b)
+        a = CommonUtil.tmp_perf["perf"]
+        for i in range(len(a["metrics"])):
+            print(a["metrics"][i]["name"], a["metrics"][i]["value"], b["metrics"][i]["value"])
+        print()
+        # disable()
+        selenium_driver.execute_cdp_cmd("Performance.disable", {})
+        return "passed"
+    except:
+        return CommonUtil.Exception_Handler(sys.exc_info())
 @logger
 def Open_Browser(dependency, window_size_X=None, window_size_Y=None, capability=None):
     """ Launch browser and create instance """
@@ -829,7 +857,11 @@ def Go_To_Link(step_data, page_title=False):
 
     # Open URL in browser
     try:
+        selenium_driver.execute_cdp_cmd("Performance.enable", {})
         selenium_driver.get(web_link)  # Open in browser
+        b = selenium_driver.execute_cdp_cmd('Performance.getMetrics', {})
+        CommonUtil.tmp_perf["perf"] = b
+        # selenium_driver.execute_cdp_cmd("Performance.disable", {})
         selenium_driver.implicitly_wait(0.5)  # Wait for page to load
         CommonUtil.ExecLog(sModuleInfo, "Successfully opened your link with driver_id='%s': %s" % (driver_id, web_link), 1)
         return "passed"
