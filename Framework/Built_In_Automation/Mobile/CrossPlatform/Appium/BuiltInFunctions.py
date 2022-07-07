@@ -988,7 +988,7 @@ def kill_node():
 
 
 @logger
-def teardown_appium(dataset=None):
+def teardown_appium(data_set=None):
     """ Teardown of appium instance """
 
     sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
@@ -1001,8 +1001,14 @@ def teardown_appium(dataset=None):
                 CommonUtil.ExecLog(sModuleInfo, "Teardown for: %s" % name, 0)
                 CommonUtil.Join_Thread_and_Return_Result("screenshot")   # Let the capturing screenshot end in thread
                 try:
-                    appium_details[name]["driver"].quit()  # Destroy driver
-                except:
+                    for left, mid, right in data_set:
+                        if mid == "action" and left.strip.lower() == "teardown":
+                            teardown = True
+                            bundle_id = right.strip()
+                    # appium_details[name]["driver"].quit()  # Destroy driver
+                    appium_details[name]["driver"].terminate_app(bundle_id)
+                except Exception as e:
+                    CommonUtil.ExecLog(sModuleInfo, e, 3)
                     pass
                 if sys.platform == "win32":  # Special kill for appium children only on Windows
                     kill_appium_on_windows(appium_details[name]["server"])
