@@ -816,6 +816,53 @@ def save_into_variable(data_set):
         return "passed"
     except:
         return CommonUtil.Exception_Handler(sys.exc_info())
+@logger
+def get_index(data_set):
+    """Save variable with native python type.
+
+    Can also create/append/update a str, list or dictionary from the given data.
+
+    Accepts any valid Python representation or JSON data.
+
+    Args:
+        data_set:
+          data               | element parameter  | valid JSON string
+          operation          | element parameter  | save/update
+          extra operation    | optional parameter | length/no duplicate/ascending sort/descending sort
+          save into variable | common action      | variable_name
+
+    Returns:
+        "passed" if success.
+        "zeuz_failed" otherwise.
+    """
+
+    sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
+
+    try:
+        my_index = None
+        index = None
+        try:
+            for left, mid, right in data_set:
+                left = left.strip().lower()
+                if "variable name" in left:
+                    variable_name = right.strip().lower()
+                elif "search for" in left:
+                    search_for = right.strip().lower()
+                elif "get index" in left:
+                    my_index = right.strip().lower()
+            variable_value = sr.Get_Shared_Variables(variable_name)
+            if search_for not in variable_value:
+                index = -1
+            else:
+                index = variable_value.index(search_for)
+        except:
+            CommonUtil.ExecLog(sModuleInfo, "Failed to parse data.", 1)
+            traceback.print_exc()
+            return "zeuz_failed"
+        sr.Set_Shared_Variables(my_index, index)
+        return "passed"
+    except:
+        return CommonUtil.Exception_Handler(sys.exc_info())
 
 
 def sort_list(variable_value, extra_operation):
