@@ -818,22 +818,8 @@ def save_into_variable(data_set):
         return CommonUtil.Exception_Handler(sys.exc_info())
 @logger
 def get_index(data_set):
-    """Save variable with native python type.
-
-    Can also create/append/update a str, list or dictionary from the given data.
-
-    Accepts any valid Python representation or JSON data.
-
-    Args:
-        data_set:
-          data               | element parameter  | valid JSON string
-          operation          | element parameter  | save/update
-          extra operation    | optional parameter | length/no duplicate/ascending sort/descending sort
-          save into variable | common action      | variable_name
-
-    Returns:
-        "passed" if success.
-        "zeuz_failed" otherwise.
+    """searching the index an item from a list.
+    If it is inthe list then ut will return the index or -1.
     """
 
     sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
@@ -854,7 +840,13 @@ def get_index(data_set):
             if search_for not in variable_value:
                 index = -1
             else:
-                index = variable_value.index(search_for)
+                for i in range(0, len(variable_value)) : 
+                    if variable_value[i] == search_for : 
+                        index=i
+                        break
+                      
+                        
+                
         except:
             CommonUtil.ExecLog(sModuleInfo, "Failed to parse data.", 1)
             traceback.print_exc()
