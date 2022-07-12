@@ -819,7 +819,7 @@ def save_into_variable(data_set):
 @logger
 def get_index(data_set):
     """searching the index an item from a list.
-    If it is inthe list then ut will return the index or -1.
+    If it is in the list then it will return the index or -1.
     """
 
     sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
@@ -846,6 +846,52 @@ def get_index(data_set):
                         break
                       
                         
+                
+        except:
+            CommonUtil.ExecLog(sModuleInfo, "Failed to parse data.", 1)
+            traceback.print_exc()
+            return "zeuz_failed"
+        sr.Set_Shared_Variables(my_index, index)
+        return "passed"
+    except:
+        return CommonUtil.Exception_Handler(sys.exc_info())
+@logger
+def get_2D_index(data_set):
+    """searching the index an item from a 2D list.
+    If it is in the list then it will return the index or -1.
+    """
+
+    sModuleInfo = inspect.currentframe().f_code.co_name + " : " + MODULE_NAME
+
+    try:
+        my_index = None
+        index = None
+        try:
+            for left, mid, right in data_set:
+                left = left.strip().lower()
+                if "variable name" in left:
+                    variable_name = right.strip().lower()
+                elif "search for" in left:
+                    search_for = right.strip().lower()
+                elif "get two dimentional index" in left:
+                    my_index = right.strip().lower()
+            variable_value = sr.Get_Shared_Variables(variable_name)
+            if search_for in variable_value:
+                index = -1
+            else:
+                i=0     
+                while i < len(variable_value):  
+                    j=0
+                    while j < len(variable_value[0]): 
+                        if variable_value[i][j]== search_for : 
+                            index=[i,j]
+                            break
+                        j=j+1
+                    i=i+1    
+                        
+    
+
+
                 
         except:
             CommonUtil.ExecLog(sModuleInfo, "Failed to parse data.", 1)
